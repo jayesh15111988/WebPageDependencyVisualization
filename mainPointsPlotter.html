@@ -7,9 +7,14 @@
 <script>
 
 // get the data
-d3.csv("data/pagerankVisualizationOutput.csv", function(error, links) {
 
 var nodes = {};
+var maximumRadiusValue = 50;
+var radiusScale;
+
+d3.csv("data/pagerankVisualizationOutput.csv", function(error, links) {
+
+
 
 // Compute the distinct nodes from the links.
 links.forEach(function(link) {
@@ -19,6 +24,10 @@ links.forEach(function(link) {
         (nodes[link.target] = {name: link.target,value: +link.value});
     link.value = +link.value;
 });
+
+radiusScale = d3.scale.linear()
+                     .domain([0, d3.max(links, function(link) { return link.value; })])
+                     .range([3, maximumRadiusValue]);
 
 var width  = 2000,
     height = 1000;
@@ -55,7 +64,7 @@ var path = svg.append("svg:g").selectAll("path")
     .data(force.links())
     .enter().append("svg:path")
     .attr("class", function(d){
-      d.source.radiusValue = d.value;
+      d.target.radiusValue = d.value;
       return "link";
     })
     .attr("marker-end", "url(#end)");
@@ -69,17 +78,18 @@ var node = svg.selectAll(".node")
 
 // add the nodes
 node.append("circle")
-    .attr("r", function(d){
-      console.log(JSON.stringify(d));
-      if (typeof d.radiusValue !== "undefined") {
-        return d.radiusValue *3;
-      }
-      else {
-        return 3;
-      }
-      //console.log(d);
-      //console.log("Value is "+d.value + " and node name is "+d.name);
-      return d.value;
+    .attr("r", function(node){
+
+        var radiusForCurrentNode;
+
+        if(typeof node.radiusValue !== "undefined") {
+            radiusForCurrentNode = radiusScale(node.radiusValue);      
+        }
+        else{
+            radiusForCurrentNode = 3;
+        }
+      
+      return radiusForCurrentNode;
     });
 
 // add the text 
