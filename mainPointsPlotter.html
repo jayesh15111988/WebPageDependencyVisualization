@@ -13,6 +13,7 @@ var nodes = {};
 //We will use this for scaling function - This is the maximum value given node could possibly expand
 var maximumRadiusValue = 50;
 var minimumRadiusValue = 3;
+var color = d3.scale.category20();
 
 //Scale is used to downgrade given range of radius to desirable value
 var radiusScale;
@@ -96,15 +97,17 @@ node.append("circle")
         }
       
       return radiusForCurrentNode;
+    })
+    .style("fill",function(node, index){
+       return color(index);
     });
 
 // add the text 
 node.append("text")
-    .attr("x", 12)
-    .attr("dy", ".35em")
+    .attr("x", 10)
+    .attr("y", -5)
     .style("font-size","18px")
     .text(function(d) { 
-        console.log(JSON.stringify(d));
         return d.name; 
     });
 
