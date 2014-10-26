@@ -32,7 +32,7 @@ links.forEach(function(link) {
 
 //We don't want to expand nodes beyond certain acceptable range of radius
 radiusScale = d3.scale.linear()
-                .domain([0, d3.max(links, function(link) { return link.value; })])
+                .domain([d3.min(links, function(link) { return link.value; }), d3.max(links, function(link) { return link.value; })])
                 .range([3, maximumRadiusValue]);
 
 var width  = 1500,

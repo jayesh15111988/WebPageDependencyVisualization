@@ -52,7 +52,7 @@ for individualLinkDetails in URLsConnectionHolder:
     targetNodeValue = individualLinkDetails[0];
     if targetNodeValue in webPagesIncomingLinkCounter:
         finalRoughWeightForPage = webPagesIncomingLinkCounter[targetNodeValue] - individualLinkDetails[2];
-        finalRoughWeightForPage = finalRoughWeightForPage if (finalRoughWeightForPage >= 0) else 0;
+        #finalRoughWeightForPage = finalRoughWeightForPage if (finalRoughWeightForPage >= 0) else 0;
         #print("***** Node is ",targetNodeValue," and final value is ",finalRoughWeightForPage," *******");
         individualLinkDetails[2] = finalRoughWeightForPage;
     else:
