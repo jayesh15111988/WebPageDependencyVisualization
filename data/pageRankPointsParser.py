@@ -3,17 +3,21 @@ import csv;
 inputFileName = "pagerank.input.1000.1";
 outputFileName = "pagerankVisualizationOutput.csv";
 
+#Writing output data of PageRank algorithm in the output file
 def writeListToCSVFile(listToWrite,fileName):
     with open(fileName, 'w', newline='') as fp:
         CSVFileWriter = csv.writer(fp, delimiter=',')
-        for individualURLConnection in listToWrite:
-            CSVFileWriter.writerow(individualURLConnection);
+        for individualURLConnectionDetails in listToWrite:
+            CSVFileWriter.writerow(individualURLConnectionDetails);
 
+#Reading from input file
 with open(inputFileName) as f:
     content = f.readlines();
 
+#This array contains link details. Source, Target and number of incoming links to given target
 URLsConnectionHolder = [];
 
+#Read content in input file line by line
 for individualLine in content:
     connectedNodesCollection = individualLine.rstrip().split(" ");
     numberOfConnectedNodesForCurrentNode = len(connectedNodesCollection) - 1;
@@ -22,13 +26,13 @@ for individualLine in content:
         del connectedNodesCollection[0];
         for individualTargetNode in connectedNodesCollection:
             URLsConnectionHolder.append([sourceNodeValue,individualTargetNode]);
-            #print("Source Node ",sourceNodeValue," and target node is ",individualTargetNode," and total connections for source ", numberOfConnectedNodesForCurrentNode);
     else:
         #numberOfConnectedNodesForCurrentNode is always zero and then we are scaling it to
-        #constant value of r = 1 which is radius of URL node which is also dangling in the space
         URLsConnectionHolder.append([sourceNodeValue,sourceNodeValue]);
-        #print("Source Node ",numberOfConnectedNodesForCurrentNode[0]," and target node is ",numberOfConnectedNodesForCurrentNode[0]," connection ",numberOfConnectedNodesForCurrentNode);
+
+#This will be used to keep track of how many incoming links current node has
 webPagesIncomingLinkCounter = {};
+
 #For each node collect how many inward links it has and we will base radius based on that
 for individualLinkDetails in URLsConnectionHolder:
     targetNodeDetails = individualLinkDetails[1];
@@ -39,9 +43,9 @@ for individualLinkDetails in URLsConnectionHolder:
         else:
             webPagesIncomingLinkCounter[targetNodeDetails] = 1;
 
-#print(webPagesIncomingLinkCounter," Links Counter ");
 #Now in each connection assign how many inward link each target has. This will help us determine size
-#of node while plotting it
+#Of node while plotting it
+
 for individualLinkDetails in URLsConnectionHolder:
     targetNodeValue = individualLinkDetails[1];
     if targetNodeValue in webPagesIncomingLinkCounter:
@@ -49,6 +53,7 @@ for individualLinkDetails in URLsConnectionHolder:
     else:
         individualLinkDetails.append(0);
 
+#Now Insert labels at the beginning of csv file for easier recognition in D3 code
 URLsConnectionHolder.insert(0,["source","target","value"]);
 writeListToCSVFile(URLsConnectionHolder,outputFileName);
 

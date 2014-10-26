@@ -3,53 +3,57 @@
 <meta charset="utf-8">
 <link rel="stylesheet" type="text/css" href="style.css" />
 <script type="text/javascript" src="d3.v3.js"></script>
+
 <body>
 <script>
 
-// get the data
-
+//Holder to store all nodes in given input file
 var nodes = {};
+
+//We will use this for scaling function - This is the maximum value given node could possibly expand
 var maximumRadiusValue = 50;
+var minimumRadiusValue = 3;
+
+//Scale is used to downgrade given range of radius to desirable value
 var radiusScale;
+var inputFileName = "data/pagerankVisualizationOutput.csv";
 
-d3.csv("data/pagerankVisualizationOutput.csv", function(error, links) {
+d3.csv(inputFileName, function(error, links) {
 
-
-
-// Compute the distinct nodes from the links.
+// Compute the Distinct nodes from the link
 links.forEach(function(link) {
     link.source = nodes[link.source] || 
-        (nodes[link.source] = {name: link.source,value: +link.value});
+        (nodes[link.source] = {name: link.source});
     link.target = nodes[link.target] || 
-        (nodes[link.target] = {name: link.target,value: +link.value});
+        (nodes[link.target] = {name: link.target});
     link.value = +link.value;
 });
 
+//We don't want to expand nodes beyond certain acceptable range of radius
 radiusScale = d3.scale.linear()
-                     .domain([0, d3.max(links, function(link) { return link.value; })])
-                     .range([3, maximumRadiusValue]);
+                .domain([0, d3.max(links, function(link) { return link.value; })])
+                .range([3, maximumRadiusValue]);
 
-var width  = 2000,
+var width  = 1500,
     height = 1000;
 
 var force = d3.layout.force()
     .nodes(d3.values(nodes))
     .links(links)
     .size([width, height])
-    .linkDistance(60)
-    .charge(-300)
+    .linkDistance(100)
+    .charge(-400)
     .on("tick", tick)
     .start();
 
 var svg = d3.select("body").append("svg")
-    .attr("width", width)
-    .attr("height", height);
+            .attr("width", width)
+            .attr("height", height);
 
 // build the arrow.
 svg.append("svg:defs").selectAll("marker")
     .data(["end"])
-  .enter().append("svg:marker")
-    .attr("id", String)
+    .enter().append("svg:marker")
     .attr("viewBox", "0 -5 10 10")
     .attr("refX", 15)
     .attr("refY", -1.5)
@@ -64,29 +68,30 @@ var path = svg.append("svg:g").selectAll("path")
     .data(force.links())
     .enter().append("svg:path")
     .attr("class", function(d){
-      d.target.radiusValue = d.value;
-      return "link";
+        d.target.radiusValue = d.value;
+        return "link";
     })
     .attr("marker-end", "url(#end)");
 
-// define the nodes
+//Define the nodes
 var node = svg.selectAll(".node")
     .data(force.nodes())
-  .enter().append("g")
+    .enter().append("g")
     .attr("class", "node")
     .call(force.drag);
 
-// add the nodes
+//Add the nodes
 node.append("circle")
     .attr("r", function(node){
 
         var radiusForCurrentNode;
-
+        console.log("Original Radius "+node.radiusValue + "Scaled Radius "+ radiusScale(node.radiusValue));
+        
         if(typeof node.radiusValue !== "undefined") {
             radiusForCurrentNode = radiusScale(node.radiusValue);      
         }
         else{
-            radiusForCurrentNode = 3;
+            radiusForCurrentNode = minimumRadiusValue;
         }
       
       return radiusForCurrentNode;
@@ -96,7 +101,11 @@ node.append("circle")
 node.append("text")
     .attr("x", 12)
     .attr("dy", ".35em")
-    .text(function(d) { return d.name; });
+    .style("font-size","18px")
+    .text(function(d) { 
+        console.log(JSON.stringify(d));
+        return d.name; 
+    });
 
 // add the curvy lines
 function tick() {
@@ -115,7 +124,6 @@ function tick() {
     node.attr("transform", function(d) { 
             return "translate(" + d.x + "," + d.y + ")"; });
     }
-
 });
 
 </script>
