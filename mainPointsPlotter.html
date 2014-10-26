@@ -70,7 +70,7 @@ var path = svg.append("svg:g").selectAll("path")
     .data(force.links())
     .enter().append("svg:path")
     .attr("class", function(d){
-        d.target.radiusValue = d.value;
+        d.source.radiusValue = d.value;
         return "link";
     })
     .attr("marker-end", "url(#end)");
