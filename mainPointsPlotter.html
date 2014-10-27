@@ -24,7 +24,7 @@ d3.csv(inputFileName, function(error, links) {
 // Compute the Distinct nodes from the link
 links.forEach(function(link) {
     link.source = nodes[link.source] || 
-        (nodes[link.source] = {name: link.source});
+        (nodes[link.source] = {name: link.source,radiusValue: link.value});
     link.target = nodes[link.target] || 
         (nodes[link.target] = {name: link.target});
     link.value = +link.value;
@@ -103,10 +103,17 @@ node.append("circle")
     });
 
 // add the text 
-node.append("text")
-    .attr("x", 10)
-    .attr("y", -5)
-    .style("font-size","18px")
+    node.append("svg:text")
+    .attr("x", "-0.5em")
+    .attr("y", function(d){
+        if(typeof d.radiusValue === "undefined" || d.radiusValue == minimumRadiusValue) {
+            return "-0.62em"
+        }
+        else{
+            return "0.31em";
+        }
+    })
+     .style("font-size", "14px")
     .text(function(d) { 
         return d.name; 
     });
