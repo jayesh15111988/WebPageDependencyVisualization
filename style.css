@@ -13,3 +13,9 @@ text {
     font: 10px sans-serif;
     pointer-events: none;
 }
+
+path.marker_only {
+  fill: none;
+  stroke-opacity: .5;
+  stroke-width: 1.5px;
+}
