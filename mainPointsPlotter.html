@@ -21,6 +21,7 @@ var node;
 var radiusScale;
 var inputFileName = "data/pagerankVisualizationOutput.csv";
 var inputLinksFromFile = [];
+var nodesCollection,linksCollection,force;
 
 d3.csv(inputFileName, function(error, links) {
 inputLinksFromFile = links;
@@ -51,14 +52,19 @@ radiusScale = d3.scale.linear()
 var width  = 1500,
     height = 1000;
 
-var force = d3.layout.force()
+force = d3.layout.force()
     .nodes(d3.values(nodes))
     .links(links)
     .size([width, height])
-    .linkDistance(100)
+    .linkDistance(150)
     .charge(-400)
     .on("tick", tick)
     .start();
+
+d3.select("body")
+.append("p")
+.style("width",width)
+.attr("class","instructionsView");
 
 var svg = d3.select("body").append("svg")
             .attr("width", width)
@@ -79,21 +85,24 @@ svg.append("svg:defs").selectAll("marker")
     .attr("d", "M0,-5L10,0L0,5");
 
 // add the links and the arrows
+linksCollection = force.links();
+nodesCollection = force.nodes();
+
 path = svg.append("svg:g").selectAll("path.link")
-    .data(force.links())
+    .data(linksCollection)
     .enter().append("svg:path")
     .attr("class", "link");
 
 //This code is added to make arrow heads appearing in the middle of curve connecting two nodes
 markerPath = svg.append("svg:g").selectAll("path.marker")
-    .data(force.links())
+    .data(linksCollection)
     .enter().append("svg:path")
     .attr("class", "marker_only")
     .attr("marker-end", "url(#end)");
 
 //Define the nodes
 node = svg.selectAll(".node")
-    .data(force.nodes())
+    .data(nodesCollection)
     .enter().append("g")
     .attr("class", "node")
     .call(force.drag);
@@ -102,20 +111,35 @@ node = svg.selectAll(".node")
 node.append("circle")
     .attr("r", function(node){
 
-        var radiusForCurrentNode;
-        console.log("Original Radius "+node.radiusValue + "Scaled Radius "+ radiusScale(node.radiusValue));
+        return getRadiusValueForNode(node);
+        //console.log("Original Radius "+node.radiusValue + "Scaled Radius "+ radiusScale(node.radiusValue));
         
-        if(typeof node.radiusValue !== "undefined") {
-            radiusForCurrentNode = radiusScale(node.radiusValue);      
-        }
-        else{
-            radiusForCurrentNode = radiusScale(0);
-        }
-      
-      return radiusForCurrentNode;
     })
     .style("fill",function(node, index){
        return color(index);
+    });
+
+    node.on("mousedown", function() { d3.event.stopPropagation(); })
+    node.on("mouseover",function(d){
+
+    //console.log(JSON.stringify(d));
+    d3.select(this).classed("node-active", true);
+    
+    var radiusForCurrentNode = getRadiusValueForNode(d);
+     d3.select(this).select("circle").transition()
+                   .duration(750)
+                   .attr("r", radiusForCurrentNode * 2);
+    });
+
+    node.on("mouseout",function(d){
+
+    node.classed("node-active", false);
+    
+    var radiusForCurrentNode = getRadiusValueForNode(d);
+
+    d3.select(this).select("circle").transition()
+                   .duration(200)
+                   .attr("r", radiusForCurrentNode);
     });
 
 // add the text 
@@ -133,6 +157,31 @@ node.append("circle")
     .text(function(d) { 
         return d.name; 
     });
+
+    d3.select("body")
+    .on("mousedown", mousedown);
+}
+
+function getRadiusValueForNode(node) {
+    var radiusForCurrentNode = 0;
+
+     if(typeof node.radiusValue !== "undefined") {
+            radiusForCurrentNode = radiusScale(node.radiusValue);      
+        }
+        else{
+            radiusForCurrentNode = radiusScale(0);
+        }
+        return radiusForCurrentNode;
+}
+
+function mousedown() {
+    
+    //Create a fancy event when mouse is clicked anywhere in 
+    nodesCollection.forEach(function(node, index) {
+        node.x += (Math.random() - 0.5) * 100;
+        node.y += (Math.random() - 0.5) * 100;
+    });
+    force.resume();
 }
 
 function tick() {

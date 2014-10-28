@@ -19,3 +19,13 @@ path.marker_only {
   stroke-opacity: .5;
   stroke-width: 1.5px;
 }
+
+.node-active{
+  stroke: #555;
+  stroke-width: 1.5px; 
+}
+
+.instructionsView {
+	background-color: red;
+	height: 100px;
+}
