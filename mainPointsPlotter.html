@@ -13,13 +13,23 @@ var nodes = {};
 var maximumRadiusValue = 50;
 var minimumRadiusValue = 3;
 var color = d3.scale.category20();
+var path;
+var markerPath;
+var node;
 
 //Scale is used to downgrade given range of radius to desirable value
 var radiusScale;
 var inputFileName = "data/pagerankVisualizationOutput.csv";
+var inputLinksFromFile = [];
 
 d3.csv(inputFileName, function(error, links) {
+inputLinksFromFile = links;
+drawGraphwithInputLinks(inputLinksFromFile);
+});
 
+
+function drawGraphwithInputLinks(links) {
+    console.log("Total number of links "+links.length);
 // Compute the Distinct nodes from the link
 links.forEach(function(link) {
     link.source = nodes[link.source] || 
@@ -69,20 +79,20 @@ svg.append("svg:defs").selectAll("marker")
     .attr("d", "M0,-5L10,0L0,5");
 
 // add the links and the arrows
-var path = svg.append("svg:g").selectAll("path.link")
+path = svg.append("svg:g").selectAll("path.link")
     .data(force.links())
     .enter().append("svg:path")
     .attr("class", "link");
 
 //This code is added to make arrow heads appearing in the middle of curve connecting two nodes
-var markerPath = svg.append("svg:g").selectAll("path.marker")
+markerPath = svg.append("svg:g").selectAll("path.marker")
     .data(force.links())
     .enter().append("svg:path")
     .attr("class", "marker_only")
     .attr("marker-end", "url(#end)");
 
 //Define the nodes
-var node = svg.selectAll(".node")
+node = svg.selectAll(".node")
     .data(force.nodes())
     .enter().append("g")
     .attr("class", "node")
@@ -123,8 +133,8 @@ node.append("circle")
     .text(function(d) { 
         return d.name; 
     });
+}
 
-// add the curvy lines
 function tick() {
 
     //To adjust links connecting two nodes
@@ -172,7 +182,6 @@ function tick() {
     node.attr("transform", function(d) { 
             return "translate(" + d.x + "," + d.y + ")"; });
     }
-});
 
 </script>
 </body>
