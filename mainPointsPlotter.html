@@ -113,7 +113,7 @@
     d3.select("p").append("p")
     .attr("class","description")
     .html("This project is a simple visualization of web pages graph with significance factor assigned to individual web page node. <br/><br/>I have calculated rough significance of each node based on the total number of incoming and outgoing links to and from it. Incoming and outgoing links increase and decrease the significance values respectively. <br/><br/> Input is given as a form of csv file (Which is generated using Python script) which contains the data node as a part of node pair and link between them. <br/>" +
-        "Users can vary number of links they want to see on the screen and change the presentation.<br/><br/>For More" +
+        "Users can vary number of links they want to see on the screen and change the presentation. Remember that significance of each page is directly proporational to the radius of node to which it corresponds. <br/><br/>For More" +
         " information code could be found on <a href= 'https://github.com/jayesh15111988/WebPageDependencyVisualization'>GitHub</a>");
         
         var select  = d3.select("p")
@@ -260,7 +260,7 @@
         node.append("svg:text")
             .attr("x", "-0.5em")
             .attr("y", function(d){
-                if(typeof d.radiusValue === "undefined" || d.radiusValue == minimumRadiusValue) {
+                if(typeof d.radiusValue === "undefined" || d.radiusValue == minimumRadiusValue || d.radiusValue == 0) {
                     return "-0.90em"
                 }
                 else{

@@ -62,5 +62,3 @@ print("Final value out and to be written into CSV file is : ", URLsConnectionHol
 #Now Insert labels at the beginning of csv file for easier recognition in D3 code
 URLsConnectionHolder.insert(0,["source","target","value"]);
 writeListToCSVFile(URLsConnectionHolder,outputFileName);
-
-
