@@ -25,6 +25,7 @@
     var numberOfLinksToDisplay = 10;
     //Maximum dimension to fit animation in - We will very this value based on a total number of visible links
     var width  = 1500, height = 430;
+    var defaultAnimationDuration = 2000;
     var isDrawingWithSingleView = true;
     var SVGElementSequenceNumber = 1;
     //Scale is used to downgrade given range of radius to desirable value
@@ -107,7 +108,7 @@
     .append("p")
     .attr("class","instructionsView")
     .transition()
-    .duration(2500)
+    .duration(defaultAnimationDuration*2)
     .text("Page Rank Visualization with D3.js")
     .attr("class","mainTitle");
 
@@ -204,8 +205,14 @@
        
         var svg = d3.select("p").append("svg")
                 .attr("id","id"+SVGElementSequenceNumber)
-                .attr("width", width)
-                .attr("height", height);
+                .style("opacity",0);
+
+        svg.transition()
+       .duration(defaultAnimationDuration)
+       .style("opacity",1)
+       .attr("width", width)
+       .attr("height", height) ;
+
         svg.append("rect")
         .attr("width", "100%")
         .attr("height", "100%")
@@ -302,18 +309,18 @@
         });
         
         var $target = $('html,body'); 
-        
+        var finalDocumentHeight =  $(document).height();
+
         if(SVGElementSequenceNumber > 2){
             //Whenver we have more than one elements we will scroll to very bottom and then scroll up with value equal
             //To height of latest svg elements embedded to the body
             var lastSVGElement = d3.select("svg#id"+(SVGElementSequenceNumber - 1));
-            var finalDocumentHeight =  $(document).height();
             console.log("current elements id "+(SVGElementSequenceNumber - 1));
-            $target.animate({scrollTop: finalDocumentHeight - (lastSVGElement.attr("height"))  }, 1000);
+            $target.animate({scrollTop: finalDocumentHeight - (lastSVGElement.attr("height"))  }, defaultAnimationDuration/2);
         }
         else {
             //In case there is only one div element in the body, we will scroll to the position which is half the total height of
-            $target.animate({scrollTop:  finalDocumentHeight/2 }, 1000);
+            $target.animate({scrollTop:  finalDocumentHeight/2 }, defaultAnimationDuration/2);
         }
         d3.select("body")
         .on("mousedown", function(){
@@ -360,7 +367,16 @@
             if(d3.selectAll("svg")[0].length > 1) {
             while(currentSVGSequenceNumber < (SVGElementSequenceNumber - 1)){
                 console.log("Removing sequence number "+currentSVGSequenceNumber);
-                d3.select("svg#id"+currentSVGSequenceNumber).remove();
+                
+                d3.select("svg#id"+currentSVGSequenceNumber)
+                .transition()
+                .duration(defaultAnimationDuration)
+                .style("opacity",0)
+                .attr("height",0)
+                .remove();
+                
+                
+
                 currentSVGSequenceNumber++;
             }
         }
