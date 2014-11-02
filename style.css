@@ -13,19 +13,41 @@ text {
     font: 10px sans-serif;
     pointer-events: none;
 }
-
 path.marker_only {
-  fill: none;
-  stroke-opacity: .5;
-  stroke-width: 1.5px;
+    fill: none;
+    stroke-opacity: .5;
+    stroke-width: 1.5px;
 }
-
-.node-active{
-  stroke: #555;
-  stroke-width: 1.5px; 
+.node-active {
+    stroke: #555;
+    stroke-width: 1.5px;
 }
-
 .instructionsView {
-	background-color: red;
-	height: 100px;
+    background-color: rgba(92, 166, 196, 1);
+    height: 100px;
+    font-size: 18px;
+}
+.optionsParagraph {
+    background-color: rgba(92, 166, 196, 1);
+    height: 60px;
+    text-align: center;
+    vertical-align: middle;
+}
+.optionsBox {
+    width: 200px;
+    text-align: center;
+    margin-left: 30px;
+}
+.spacing {
+    height: 0;
+}
+.mainTitle {
+    font-weight: bold;
+    font-size: 22px;
+    color: black;
+    padding: 20px 0 0 20px;
+}
+.description {
+    background-color: rgba(92, 166, 196, 1);
+    padding: 20px;
 }

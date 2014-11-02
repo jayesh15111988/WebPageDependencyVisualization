@@ -2,304 +2,357 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <link rel="stylesheet" type="text/css" href="style.css" />
+<!-- Source of all magic - D3.js Library -->
 <script type="text/javascript" src="d3.v3.js"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
 <body>
-<script>
-
-//Holder to store all nodes in given input file
-var nodes = {};
-
-//We will use this for scaling function - This is the maximum value given node could possibly expand
-var maximumRadiusValue = 50;
-var minimumRadiusValue = 3;
-var color = d3.scale.category20();
-var path;
-var markerPath;
-var node;
-var svg;
-var numberOfNodesOptions = [];
-var numberOfNodesToDisplay = 10;
-//Maximum dimension to fit animation in
-var width  = 1500, height = 500;
-
-//Scale is used to downgrade given range of radius to desirable value
-var radiusScale;
-var inputFileName = "data/pagerankVisualizationOutput.csv";
-var inputLinksFromFile = [];
-var nodesCollection,linksCollection,force;
-
-loadDefaultValuesInOptions();
-configureOptionsAndInstructionsView();
-loadAndDisplayPageRankNodesWithValue(numberOfNodesToDisplay);
-
-function loadAndDisplayPageRankNodesWithValue(numberOfDisplayNodes) {
-
-if(inputLinksFromFile.length == 0)
- {
-    d3.csv(inputFileName, function(error, links) {
-    inputLinksFromFile = links;
-    //var maximumRangeInput = numberOfDisplayNodes;
-
-    loadAllLinkValuesFromStoredArray(numberOfDisplayNodes);
-});
-} 
-else {
-
-loadAllLinkValuesFromStoredArray(numberOfDisplayNodes);
-}
-
-}
-
-function loadAllLinkValuesFromStoredArray(numberOfLinksToDisplay) {
-    console.log("Number Of Links to display "+numberOfLinksToDisplay);
-if(numberOfLinksToDisplay > inputLinksFromFile.length) {
-        numberOfLinksToDisplay = inputLinksFromFile.length;
-    }
-    console.log("Range is 0 to ", (numberOfLinksToDisplay));
-    drawGraphwithInputLinks(inputLinksFromFile.slice(0,(numberOfLinksToDisplay)));
-}   
-
-
-function configureOptionsAndInstructionsView() {
-    d3.select("body")
-.append("p")
-.style("width",width)
-.attr("class","instructionsView")
-.on("mousedown", function() { d3.event.stopPropagation(); });
-
-//Append options which will allow users to choose total number of visible nodes on current view
-var select  = d3.select("p").append("select")
-                            .attr("class","selectOptionsBox")
-                            .on("change", numberOfNodesOptionChanged);
-var options = select.selectAll('option').data(numberOfNodesOptions); // Data join
-
-// Enter selection
-options.enter().append("option").text(function(numberOfNodesValue) { 
-                                        return numberOfNodesValue; 
-                                    });
-                                
-}
-
-function numberOfNodesOptionChanged() {
-    var selecteNumberOfNodesToDisplayValue = +(d3.select(this).property('value'));
-    loadAndDisplayPageRankNodesWithValue(selecteNumberOfNodesToDisplayValue);
+    <script>
+    //Holder to store all nodes in given input file
     
-}
 
-function drawGraphwithInputLinks(links) {
- //   console.log("Links data"+links);
+    var inputLinksFromFile = [];
+    var nodesCollection,linksCollection;
+    //We will use this for scaling function - This is the maximum value of radius for given node
+    var maximumRadiusValue = 50;
+    //What is the radius of nodes having minimum significance
+    var minimumRadiusValue = 3;
+    //Thi is predefined set of color set
+    var color = d3.scale.category20();
+    var numberOfNodesOptions = [];
+    var maximumNumberOfLinksFromFile = 0; 
+    //Number of links to display at the time
+    var numberOfLinksToDisplay = 10;
+    //Maximum dimension to fit animation in - We will very this value based on a total number of visible links
+    var width  = 1500, height = 400;
 
-// Compute the Distinct nodes from the link
-links.forEach(function(link) {
-    link.source = nodes[link.source] || 
-        (nodes[link.source] = {name: link.source,radiusValue: link.value});
-    link.target = nodes[link.target] || 
-        (nodes[link.target] = {name: link.target});
-    link.value = +link.value;
-    link.source.radiusValue = link.value;
-});
-
-//We don't want to expand nodes beyond certain acceptable range of radius
-//Domain will include both negative and positive values
-
-radiusScale = d3.scale.linear()
-                .domain([d3.min(links, function(link) { return link.value; }), d3.max(links, function(link) { return link.value; })])
-                .range([3, maximumRadiusValue]);
-
-
-
-svg = d3.select("body").append("svg")
-            .attr("width", width)
-            .attr("height", height);
-svg.append("rect")
-    .attr("width", "100%")
-    .attr("height", "100%")
-    .attr("fill", function(){
-        return color(links.length % 20);
-    });
-
-
-
-force = d3.layout.force()
-    .nodes(d3.values(nodes))
-    .links(links)
-    .size([width, height])
-    .linkDistance(150)
-    .charge(-400)
-    .on("tick", tick)
-    .start();
+    //Scale is used to downgrade given range of radius to desirable value
+    var radiusScale;
+    var inputFileName = "data/pagerankVisualizationOutput.csv";
+    
+    
+    //At the top of page we have instructions view and option selector to change number of visible links on screen
+    //configureOptionsAndInstructionsView();
+    //Perform actual configuration and display of nodes on screen
+    loadAndDisplayPageRankNodesWithValue(numberOfLinksToDisplay, loadDefaultValuesInOptions,configureOptionsAndInstructionsView);
+    //Load all nodes values from input file
+    
+    //Source : http://james.padolsey.com/javascript/deep-copying-of-objects-and-arrays/
+    //Deep cloning of an object as the original array is mutated while creating force layout
+    function clone(obj) {
+        if (Object.prototype.toString.call(obj) === '[object Array]') {
+            var out = [], i = 0, len = obj.length;
+            for ( ; i < len; i++ ) {
+                out[i] = arguments.callee(obj[i]);
+            }
+            return out;
+        }
+        if (typeof obj === 'object') {
+            var out = {}, i;
+            for ( i in obj ) {
+                out[i] = arguments.callee(obj[i]);
+            }
+        return out;
+        }
+        return obj;
+    }
 
 
-// build the arrow.
-svg.append("svg:defs").selectAll("marker")
-    .data(["end"])
-    .enter().append("svg:marker")
-    .attr("id", String)
-    .attr("viewBox", "0 -5 10 10")
-    .attr("refX", -1.5)
-    .attr("refY", -1.5)
-    .attr("markerWidth", 6)
-    .attr("markerHeight", 6)
-    .attr("orient", "auto")
-    .append("svg:path")
-    .attr("d", "M0,-5L10,0L0,5");
+    function loadAndDisplayPageRankNodesWithValue(numberOfDisplayNodes, loadDefaultValuesInOptionsCallback,loadAndDisplayPageRankNodesWithValueCallback) {
+        //Did we already load data from input file?
+        if(inputLinksFromFile.length == 0) {
+            d3.csv(inputFileName, function(error, links) {
+            //Cache for storing all values from file. We will use this only once and for subsequent uses, value will be taken from this array
+            inputLinksFromFile = links;
+            maximumNumberOfLinksFromFile = inputLinksFromFile.length;
+            
+            //Show Default number of links on screen. Default is 10
+            
+            loadDefaultValuesInOptionsCallback();
+            loadAndDisplayPageRankNodesWithValueCallback();
+            loadAllLinkValuesFromStoredArray(numberOfDisplayNodes);
+            });
+        }
+        else {
+            loadAllLinkValuesFromStoredArray(numberOfDisplayNodes);
+        }
+    }
 
-// add the links and the arrows
-linksCollection = force.links();
-nodesCollection = force.nodes();
 
-path = svg.append("svg:g").selectAll("path.link")
-    .data(linksCollection)
-    .enter().append("svg:path")
-    .attr("class", "link");
-
-//This code is added to make arrow heads appearing in the middle of curve connecting two nodes
-markerPath = svg.append("svg:g").selectAll("path.marker")
-    .data(linksCollection)
-    .enter().append("svg:path")
-    .attr("class", "marker_only")
-    .attr("marker-end", "url(#end)");
-
-//Define the nodes
-node = svg.selectAll(".node")
-    .data(nodesCollection)
-    .enter().append("g")
-    .attr("class", "node")
-    .call(force.drag);
-
-//Add the nodes
-node.append("circle")
-    .attr("r", function(node){
-
-        return getRadiusValueForNode(node);
-        //console.log("Original Radius "+node.radiusValue + "Scaled Radius "+ radiusScale(node.radiusValue));
+    function loadAllLinkValuesFromStoredArray(numberOfLinksToDisplay) {
+    
+        //If somehow number of input links to display parameter value is more than maximum number of links in a file
+        //Adjust it to maximum number of nodes
+        if(numberOfLinksToDisplay > maximumNumberOfLinksFromFile) {
+            numberOfLinksToDisplay = maximumNumberOfLinksFromFile;
+        }
         
-    })
-    .style("fill",function(node, index){
-       return color(index);
-    });
-
-    node.on("mousedown", function() { d3.event.stopPropagation(); })
-    node.on("mouseover",function(d){
-
-    //console.log(JSON.stringify(d));
-    d3.select(this).classed("node-active", true);
-    
-    var radiusForCurrentNode = getRadiusValueForNode(d);
-     d3.select(this).select("circle").transition()
-                   .duration(750)
-                   .attr("r", radiusForCurrentNode * 2);
-    });
-
-    node.on("mouseout",function(d){
-
-    node.classed("node-active", false);
-    
-    var radiusForCurrentNode = getRadiusValueForNode(d);
-
-    d3.select(this).select("circle").transition()
-                   .duration(200)
-                   .attr("r", radiusForCurrentNode);
-    });
-
-// add the text 
-    node.append("svg:text")
-    .attr("x", "-0.5em")
-    .attr("y", function(d){
-        if(typeof d.radiusValue === "undefined" || d.radiusValue == minimumRadiusValue) {
-            return "-0.90em"
-        }
-        else{ 
-            return "0.31em";
-       }
-    })
-     .style("font-size", "14px")
-    .text(function(d) { 
-        return d.name; 
-    });
-
-    d3.select("body")
-    .on("mousedown", mousedown);
-}
-
-function loadDefaultValuesInOptions() {
-    var tempNumberOfNodesToDisplay = numberOfNodesToDisplay;
-    while(tempNumberOfNodesToDisplay <=100) {
-        numberOfNodesOptions.push(tempNumberOfNodesToDisplay);
-        tempNumberOfNodesToDisplay += 10;
+        //Deep clone the array
+        var tempNodes = clone(inputLinksFromFile);
+        console.log("Range of nodes extracted from file is Minimum 0 to maximum "+(numberOfLinksToDisplay - 1))
+        drawGraphwithInputLinks(tempNodes.slice(0,(numberOfLinksToDisplay)));
     }
-}
+    function configureOptionsAndInstructionsView() {
+        d3.select("body")
+        .append("p")
+        .attr("id","mainParagraph")
+        .style("width",width)
+        .attr("class","instructionsView")
+        .on("mousedown", function() { 
+                            d3.event.stopPropagation(); 
+                        }
+           );
 
-function getRadiusValueForNode(node) {
-    var radiusForCurrentNode = 0;
+        d3.select("p")
+    .append("p")
+    .attr("class","instructionsView")
+    .transition()
+    .duration(2500)
+    .text("Page Rank Visualization with D3.js")
+    .attr("class","mainTitle");
 
-     if(typeof node.radiusValue !== "undefined") {
-            radiusForCurrentNode = radiusScale(node.radiusValue);      
-        }
-        else{
-            radiusForCurrentNode = radiusScale(0);
-        }
-        return radiusForCurrentNode;
-}
-
-function mousedown() {
+    d3.select("p").append("p")
+    .attr("class","description")
+    .html("This project is a simple visualization of web pages graph with significance factor assigned to individual web page node. <br/><br/>I have calculated rough significance of each node based on the total number of incoming and outgoing links to and from it. Incoming and outgoing links increase and decrease the significance values respectively. <br/><br/> Input is given as a form of csv file (Which is generated using Python script) which contains the data node as a part of node pair and link between them. <br/>" +
+        "Users can vary number of links they want to see on the screen and change the presentation.<br/><br/>For More" +
+        " information code could be found on <a href= 'https://github.com/jayesh15111988/WebPageDependencyVisualization'>GitHub</a>");
+        
+        var select  = d3.select("p")
+                        .append("p")
+                        .attr("class","optionsParagraph")
+                        .text("Number Of links to show")
+                        .style("line-height","60px")
+                        .append("select")
+                        .attr("class","optionsBox")
+                        .on("change", numberOfNodesOptionChanged);
+        var options = select.selectAll('option')
+                            .data(numberOfNodesOptions); 
     
-    //Create a fancy event when mouse is clicked anywhere in 
-    nodesCollection.forEach(function(node, index) {
-        node.x += (Math.random() - 0.5) * 100;
-        node.y += (Math.random() - 0.5) * 100;
-    });
-    force.resume();
-}
+        options.enter().append("option").text(function(numberOfNodesValue) {
+                                            return numberOfNodesValue;
+                                        });        
+        d3.select("p").append("p").attr("class","spacing");
 
-function tick() {
+    }
 
-    //To adjust links connecting two nodes
-    path.attr("d", function(d) {
+    function numberOfNodesOptionChanged() {
+        var selectenumberOfLinksToDisplayValue = +(d3.select(this).property('value'));
+        loadAndDisplayPageRankNodesWithValue(selectenumberOfLinksToDisplayValue);
+    }
+
+    function drawGraphwithInputLinks(links) {
+    
+        // Compute the Distinct nodes from the link
+        var totalnumberOfLinksToDisplay = links.length;
+        var heightScalingFactor = (totalnumberOfLinksToDisplay > 30)?20 : 35;
+        height = heightScalingFactor * totalnumberOfLinksToDisplay;
+        
+        var maximumPossibleWidth = 10 * totalnumberOfLinksToDisplay;
+        if(maximumPossibleWidth > width) {
+            width = maximumPossibleWidth;
+        }
+        var path, markerPath, node;
+        var nodes = {};
+
+        links.forEach(function(link) {
+            link.source = nodes[link.source] ||
+                (nodes[link.source] = {name: link.source,radiusValue: link.value});
+            link.target = nodes[link.target] ||
+                (nodes[link.target] = {name: link.target});
+            link.value = +link.value;
+            link.source.radiusValue = link.value;
+        });
+
+        //We don't want to expand nodes beyond certain acceptable range of radius
+        //Domain will include both negative and positive values. Value of individual node will depend on significance of
+        //Each node in given graph
+        radiusScale = d3.scale.linear()
+                    .domain([d3.min(links, function(link) { return link.value; }), d3.max(links, function(link) { return link.value; })])
+                    .range([3, maximumRadiusValue]);
+    
+
+        var existingSVGElement = d3.select("svg");
+        if(typeof existingSVGElement !== "undefined") {
+            existingSVGElement.remove(); 
+        }
+       
+        var svg = d3.select("p").append("svg")
+                .attr("width", width)
+                .attr("height", height);
+        svg.append("rect")
+        .attr("width", "100%")
+        .attr("height", "100%")
+        .attr("class","sam") 
+        .attr("fill", function(){
+                        return color(links.length % 20);
+                    });
+    
+        var force = d3.layout.force()
+                    .nodes(d3.values(nodes))
+                    .links(links)
+                    .size([width, height])
+                    .linkDistance(7 * totalnumberOfLinksToDisplay)
+                    .charge(-400)
+                    .on("tick", function(){
+                                tick(node,path,markerPath);
+                                })
+                    .start();
+        // build the arrow.
+        svg.append("svg:defs").selectAll("marker")
+            .data(["end"])
+            .enter().append("svg:marker")
+            .attr("id", String)
+            .attr("viewBox", "0 -5 10 10")
+            .attr("refX", -1.5)
+            .attr("refY", -1.5)
+            .attr("markerWidth", 6)
+            .attr("markerHeight", 6)
+            .attr("orient", "auto")
+            .append("svg:path")
+            .attr("d", "M0,-5L10,0L0,5");
+        // add the links and the arrows
+        linksCollection = force.links();
+        nodesCollection = force.nodes();
+        path = svg.append("svg:g").selectAll("path.link")
+                .data(linksCollection)
+                .enter().append("svg:path")
+                .attr("class", "link");
+        //This code is added to make arrow heads appearing in the middle of curve connecting two nodes
+        markerPath = svg.append("svg:g").selectAll("path.marker")
+                        .data(linksCollection)
+                        .enter().append("svg:path")
+                        .attr("class", "marker_only")
+                        .attr("marker-end", "url(#end)");
+        //Define the nodes
+        node = svg.selectAll(".node")
+                    .data(nodesCollection)
+                    .enter().append("g")
+                    .attr("class", "node")
+                    .call(force.drag);
+        //Add the nodes
+        node.append("circle")
+            .attr("r", function(node){
+                            return getRadiusValueForNode(node);
+                        })
+            .style("fill",function(node, index){
+                            return color(index);
+                          });
+        node.on("mousedown", function() { 
+                                d3.event.stopPropagation(); 
+                            })
+        node.on("mouseover",function(d){
+                                d3.select(this).classed("node-active", true);
+                                var radiusForCurrentNode = getRadiusValueForNode(d);
+                                d3.select(this).select("circle").transition()
+                                    .duration(750)
+                                    .attr("r", radiusForCurrentNode * 2);
+                            });
+        node.on("mouseout",function(d){
+        node.classed("node-active", false);
+        
+        var radiusForCurrentNode = getRadiusValueForNode(d);
+        d3.select(this)
+            .select("circle").transition()
+                    .duration(200)
+                    .attr("r", radiusForCurrentNode);
+                });
+
+        // add the text
+        node.append("svg:text")
+            .attr("x", "-0.5em")
+            .attr("y", function(d){
+                if(typeof d.radiusValue === "undefined" || d.radiusValue == minimumRadiusValue) {
+                    return "-0.90em"
+                }
+                else{
+                    return "0.31em";
+                }
+        })
+        .style("font-size", "14px")
+        .text(function(d) {
+            return d.name;
+        });
+        //window.scrollTo(0,document.body.scrollHeight / 2);
+                var $target = $('html,body'); 
+        $target.animate({scrollTop:  $(document).height()/2 }, 1000);
+        d3.select("body")
+        .on("mousedown", function(){
+            mousedown(force);
+        });
+    }
+
+    function loadDefaultValuesInOptions() {
+        console.log("Max number of nodes " + maximumNumberOfLinksFromFile);
+        var tempnumberOfLinksToDisplay = numberOfLinksToDisplay;
+        while(tempnumberOfLinksToDisplay <= maximumNumberOfLinksFromFile) {
+            numberOfNodesOptions.push(tempnumberOfLinksToDisplay);
+            tempnumberOfLinksToDisplay += 10;
+        }
+    }
+
+    function getRadiusValueForNode(node) {
+        var radiusForCurrentNode = 0;
+        if(typeof node.radiusValue !== "undefined") {
+                    radiusForCurrentNode = radiusScale(node.radiusValue);
+            }
+            else{
+                radiusForCurrentNode = radiusScale(0);
+            }
+            return radiusForCurrentNode;
+    }
+
+    function mousedown(force) {    
+        //Create a fancy event when mouse is clicked anywhere in
+        nodesCollection.forEach(function(node, index) {
+            node.x += (Math.random() - 0.5) * 100;
+            node.y += (Math.random() - 0.5) * 100;
+        });
+        force.resume();
+    }
+
+    function tick(node,path,markerPath) {
+        //To adjust links connecting two nodes
+        path.attr("d", function(d) {
+            var dx = d.target.x - d.source.x,
+                dy = d.target.y - d.source.y,
+                dr = Math.sqrt(dx * dx + dy * dy);
+            return "M" +
+                d.source.x + "," +
+                d.source.y + "A" +
+                dr + "," + dr + " 0 0,1 " +
+                d.target.x + "," +
+                d.target.y;
+        });
+
+        //To adjust arrow heads on connecting links which appear to be present
+        //In the middle
+        markerPath.attr("d", function(d) {
         var dx = d.target.x - d.source.x,
             dy = d.target.y - d.source.y,
             dr = Math.sqrt(dx * dx + dy * dy);
-        return "M" + 
-            d.source.x + "," + 
-            d.source.y + "A" + 
-            dr + "," + dr + " 0 0,1 " + 
-            d.target.x + "," + 
-            d.target.y;
+        // We know the center of the arc will be some distance perpendicular from the
+        // link segment's midpoint. The midpoint is computed as:
+        var endX = (d.target.x + d.source.x) / 2;
+        var endY = (d.target.y + d.source.y) / 2;
+        // Notice that the paths are the arcs generated by a circle whose
+        // radius is the same as the distance between the nodes. This simplifies the
+        // trig as we can simply apply the 30-60-90 triangle rule to find the difference
+        // between the radius and the distance to the segment midpoint from the circle
+        // center.
+        var len = dr - ((dr/2) * Math.sqrt(3));
+        
+        // Remember that is we have a line's slope then the perpendicular slope is the
+        // negative inverse.
+        endX = endX + (dy * len/dr);
+        endY = endY + (-dx * len/dr);
+        
+        return "M" + d.source.x + "," + d.source.y + "A" + dr + "," + dr + " 0 0,1 " + endX + "," + endY;
     });
+        //How much each node should translate when graph is played with
+        node.attr("transform", function(d) {
+                return "translate(" + d.x + "," + d.y + ")"; 
+        });
 
-    //To adjust arrow heads on connecting links which appear to be present
-    //In the middle
-
-     markerPath.attr("d", function(d) {
-    var dx = d.target.x - d.source.x,
-        dy = d.target.y - d.source.y,
-        dr = Math.sqrt(dx * dx + dy * dy);
-
-    // We know the center of the arc will be some distance perpendicular from the
-    // link segment's midpoint. The midpoint is computed as:
-    var endX = (d.target.x + d.source.x) / 2;
-    var endY = (d.target.y + d.source.y) / 2;
-
-    // Notice that the paths are the arcs generated by a circle whose 
-    // radius is the same as the distance between the nodes. This simplifies the 
-    // trig as we can simply apply the 30-60-90 triangle rule to find the difference
-    // between the radius and the distance to the segment midpoint from the circle 
-    // center.
-    var len = dr - ((dr/2) * Math.sqrt(3));
-    
-    // Remember that is we have a line's slope then the perpendicular slope is the 
-    // negative inverse.
-    endX = endX + (dy * len/dr);
-    endY = endY + (-dx * len/dr);
-      
-    return "M" + d.source.x + "," + d.source.y + "A" + dr + "," + dr + " 0 0,1 " + endX + "," + endY;
-  });
-
-    //How much each node should translate when graph is played with
-    node.attr("transform", function(d) { 
-            return "translate(" + d.x + "," + d.y + ")"; });
-    }
-
-</script>
+        }
+    </script>
 </body>
 </html>
