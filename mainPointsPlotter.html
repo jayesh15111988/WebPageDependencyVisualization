@@ -304,13 +304,16 @@
         var $target = $('html,body'); 
         
         if(SVGElementSequenceNumber > 2){
+            //Whenver we have more than one elements we will scroll to very bottom and then scroll up with value equal
+            //To height of latest svg elements embedded to the body
             var lastSVGElement = d3.select("svg#id"+(SVGElementSequenceNumber - 1));
+            var finalDocumentHeight =  $(document).height();
             console.log("current elements id "+(SVGElementSequenceNumber - 1));
-            $target.animate({scrollTop:  $(document).height() - (lastSVGElement.attr("height"))  }, 1000);
-            //Scroll to very bottom minus length of last element
+            $target.animate({scrollTop: finalDocumentHeight - (lastSVGElement.attr("height"))  }, 1000);
         }
         else {
-            $target.animate({scrollTop:  $(document).height()/2 }, 1000);
+            //In case there is only one div element in the body, we will scroll to the position which is half the total height of
+            $target.animate({scrollTop:  finalDocumentHeight/2 }, 1000);
         }
         d3.select("body")
         .on("mousedown", function(){
@@ -324,6 +327,9 @@
         while(tempnumberOfLinksToDisplay <= maximumNumberOfLinksFromFile) {
             numberOfNodesOptions.push(tempnumberOfLinksToDisplay);
             tempnumberOfLinksToDisplay += 10;
+        }
+        if((tempnumberOfLinksToDisplay - maximumNumberOfLinksFromFile) > 0) {
+            numberOfNodesOptions.push(maximumNumberOfLinksFromFile);
         }
     }
 
