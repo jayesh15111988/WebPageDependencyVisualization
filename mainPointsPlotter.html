@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <link rel="stylesheet" type="text/css" href="style.css" />
+<title>Webpage significance based on a underlying graph of web </title>
 <!-- Source of all magic - D3.js Library -->
 <script type="text/javascript" src="d3.v3.js"></script>
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
@@ -23,8 +24,9 @@
     //Number of links to display at the time
     var numberOfLinksToDisplay = 10;
     //Maximum dimension to fit animation in - We will very this value based on a total number of visible links
-    var width  = 1500, height = 400;
-
+    var width  = 1500, height = 430;
+    var isDrawingWithSingleView = true;
+    var SVGElementSequenceNumber = 1;
     //Scale is used to downgrade given range of radius to desirable value
     var radiusScale;
     var inputFileName = "data/pagerankVisualizationOutput.csv";
@@ -64,9 +66,8 @@
             //Cache for storing all values from file. We will use this only once and for subsequent uses, value will be taken from this array
             inputLinksFromFile = links;
             maximumNumberOfLinksFromFile = inputLinksFromFile.length;
-            
-            //Show Default number of links on screen. Default is 10
-            
+
+            //Show Default number of links on screen. Default is 10     
             loadDefaultValuesInOptionsCallback();
             loadAndDisplayPageRankNodesWithValueCallback();
             loadAllLinkValuesFromStoredArray(numberOfDisplayNodes);
@@ -118,18 +119,44 @@
         
         var select  = d3.select("p")
                         .append("p")
+                        .attr("id","options")
                         .attr("class","optionsParagraph")
                         .text("Number Of links to show")
                         .style("line-height","60px")
                         .append("select")
                         .attr("class","optionsBox")
                         .on("change", numberOfNodesOptionChanged);
+
         var options = select.selectAll('option')
                             .data(numberOfNodesOptions); 
     
         options.enter().append("option").text(function(numberOfNodesValue) {
                                             return numberOfNodesValue;
-                                        });        
+                                        });
+        d3.select("p#options").append("button")
+        .text("Multiple Div View")
+        .attr("class","mouseOut selectionButton")
+        .on('mouseover',function(){
+            d3.select(this).classed({"mouseOut":false,"mouseIn":true});
+        })
+        .on('mouseout', function() {
+            d3.select(this).classed({"mouseOut":true,"mouseIn":false});
+        })
+        .on('click', function(d,i){ 
+
+            if(!isDrawingWithSingleView) {
+                console.log("Removing all elemnts");
+                d3.select(this).text("Multiple Div View");
+                removeAllSVGElements();
+//                loadAndDisplayPageRankNodesWithValue(10, loadDefaultValuesInOptions,configureOptionsAndInstructionsView);
+            }
+            else {
+                d3.select(this).text("Single Div View");
+            }
+            isDrawingWithSingleView = !isDrawingWithSingleView;
+
+          });
+        
         d3.select("p").append("p").attr("class","spacing");
 
     }
@@ -168,14 +195,15 @@
         radiusScale = d3.scale.linear()
                     .domain([d3.min(links, function(link) { return link.value; }), d3.max(links, function(link) { return link.value; })])
                     .range([3, maximumRadiusValue]);
-    
 
-        var existingSVGElement = d3.select("svg");
-        if(typeof existingSVGElement !== "undefined") {
-            existingSVGElement.remove(); 
+        
+        if(isDrawingWithSingleView) {
+            console.log("Removing All Elements");
+            removeAllSVGElements();
         }
        
         var svg = d3.select("p").append("svg")
+                .attr("id","id"+SVGElementSequenceNumber)
                 .attr("width", width)
                 .attr("height", height);
         svg.append("rect")
@@ -185,7 +213,7 @@
         .attr("fill", function(){
                         return color(links.length % 20);
                     });
-    
+        SVGElementSequenceNumber++;
         var force = d3.layout.force()
                     .nodes(d3.values(nodes))
                     .links(links)
@@ -216,6 +244,7 @@
                 .data(linksCollection)
                 .enter().append("svg:path")
                 .attr("class", "link");
+
         //This code is added to make arrow heads appearing in the middle of curve connecting two nodes
         markerPath = svg.append("svg:g").selectAll("path.marker")
                         .data(linksCollection)
@@ -271,9 +300,18 @@
         .text(function(d) {
             return d.name;
         });
-        //window.scrollTo(0,document.body.scrollHeight / 2);
-                var $target = $('html,body'); 
-        $target.animate({scrollTop:  $(document).height()/2 }, 1000);
+        
+        var $target = $('html,body'); 
+        
+        if(SVGElementSequenceNumber > 2){
+            var lastSVGElement = d3.select("svg#id"+(SVGElementSequenceNumber - 1));
+            console.log("current elements id "+(SVGElementSequenceNumber - 1));
+            $target.animate({scrollTop:  $(document).height() - (lastSVGElement.attr("height"))  }, 1000);
+            //Scroll to very bottom minus length of last element
+        }
+        else {
+            $target.animate({scrollTop:  $(document).height()/2 }, 1000);
+        }
         d3.select("body")
         .on("mousedown", function(){
             mousedown(force);
@@ -307,6 +345,24 @@
             node.y += (Math.random() - 0.5) * 100;
         });
         force.resume();
+    }
+
+    function removeAllSVGElements() {
+        var currentSVGSequenceNumber = 1;
+        var allSVGElements = d3.select("svg");
+        if(typeof allSVGElements !== "undefined") {
+            if(d3.selectAll("svg")[0].length > 1) {
+            while(currentSVGSequenceNumber < (SVGElementSequenceNumber - 1)){
+                console.log("Removing sequence number "+currentSVGSequenceNumber);
+                d3.select("svg#id"+currentSVGSequenceNumber).remove();
+                currentSVGSequenceNumber++;
+            }
+        }
+        else {
+            allSVGElements.remove();
+            SVGElementSequenceNumber = 1;
+        }
+        }
     }
 
     function tick(node,path,markerPath) {
